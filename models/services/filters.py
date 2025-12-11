@@ -1,4 +1,3 @@
-import json
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 # - Filter only 5 letter words from a list of words of varying lenghts
@@ -43,7 +42,8 @@ def letter_frequency():
 def save_results():
     matrix = letter_frequency()
     with open("data/wordle-data/frequency.json", "w") as file:
-        json.dump(matrix, file, indent=4)
+        #json.dump(matrix, file, indent=4)
+        pass
 
 # - ransforms words letters to numbers based on alphabetic positioning
 def words_to_numbers():

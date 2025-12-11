@@ -39,18 +39,19 @@ class game():
             print(r"| |  | |   ___    _ __    __| |  _   _ ")
             print(r"| |/\| |  / _ \  | '__|  / _` | | | | |")
             print(r"\  /\  / | (_) | | |    | (_| | | |_| |          ／l、 ")
-            print(r" \/  \/   \___/  |_|     \__,_|  \__, |        （ﾟ､ ｡ ７")
+            print(r" \/  \/   \___/  |_|     \__,_|  \__, |        （ﾟ､ ｡ 7")
             print(r"                                  __/ |          l  ~ヽ")
             print(r"                                 |___/           じしf_,)ノ")
             print(Style.NORMAL + "=========================================================" + Style.RESET_ALL)
         
             print()
-            print ("1- compete against Wordy!")
+            print ("1- Play against Bunny!")
             print ("2- Make Wordy guess!")
             print ("3- Add custom word to dictionary")
             print ("4- Reset Custom words")
             print ("5- Reset match history")
             print ("6- Is Wordy the cat?")
+            print ("7- Who is Bunny?")
             print ("0- Close program")
             print ("--------------------------------------")
             print()
@@ -62,7 +63,7 @@ class game():
                     print()
                     MenuInput = ExitInput
                 case 1:
-                    pass
+                    self.bunny_solo()
                 case 2:
                     self.wordy_guess()
                 case 3:
@@ -83,6 +84,11 @@ class game():
                     print("              \\ \\ ,  /      |")
                     print("               || |-_\\__   /")
                     print("              ((_/`(____,-'" + Style.RESET_ALL)
+                case 7:
+                    print(f"- Bunny is a friend that you can rival against or ask to be a neutral ally when playing against wordy. " \
+                          f"{Fore.YELLOW}Be wary of her{Style.RESET_ALL} as she will not hold your hand if you decide to challenge her. " \
+                          f"She will only give you the last current guess feedback (since she's lazy lol) and {Fore.RED}will punish you{Style.RESET_ALL} " \
+                          f"if you decide to not use a lenght-appropiate word or other symbols she may not recognize")
         
 
 
@@ -157,24 +163,25 @@ class game():
                 # True absent letter => forbid all positions
                 self.__RedLetters[letter] = list(range(self.__WordsLength))
 
+    def get_possibleWords(self):
+        self.__PermitedWords = [line.strip() for line in open("data/wordy-data/wordy-words.txt")]
+        try:
+            self.__PermitedWords += [line.strip() for line in open("data/wordy-data/custom-words.txt")]
+            with open ("data/wordy-data/games.txt", "r") as file:
+                data = file.readlines()
+                data = [line.strip() for line in data if line.strip()]
+                for word in data:
+                    if word in self.__PermitedWords:
+                        self.__PermitedWords.remove(word)
+        except FileNotFoundError:
+            pass
+
     def compute_viability(self) -> str | None:
         """Filters words from self.__PermitedWords"""
 
         # =First Try=======================================================
         if len(self.__TriedWords) == 0:
-            self.__PermitedWords = [line.strip() for line in open("data/wordy-data/wordy-words.txt")]
-            try:
-                self.__PermitedWords += [line.strip() for line in open("data/wordy-data/custom-words.txt")]
-                with open ("data/wordy-data/games.txt", "r") as file:
-                    data = file.readlines()
-                    data = [line.strip() for line in data if line.strip()]
-                    for word in data:
-                        if word in self.__PermitedWords:
-                            self.__PermitedWords.remove(word)
-            except FileNotFoundError:
-                pass
-            
-
+            self.get_possibleWords()
             FrequencyMatrix = self.letter_frequency()
             BestWord = self.compute_BestWord(FrequencyMatrix)
             return BestWord
@@ -333,11 +340,73 @@ class game():
         victoryWord = self.bunny_word()
 
         for round in range(self.__MaxGuesses):
-            input 
 
-
+            user_input = input(f"- Your guess ({round + 1}/{self.__MaxGuesses}) is:" )
             
-        pass
+            feedback = self.bunny_feedback(victoryWord, user_input)
+            if not self.input_constrainer(user_input, feedback):
+                print(f"{Fore.RED}Bunny logic error — invalid feedback generated.{Style.RESET_ALL}")
+                self.reset_variables()
+                return
+
+            self.assign_colors(feedback)
+
+    def bunny_solo(self):
+        victoryWord = self.bunny_word()
+        print(f"{Fore.CYAN}- Bunny chose a word with {self.__WordsLength} letters!{Style.RESET_ALL}")
+
+        for round in range(self.__MaxGuesses):
+
+            user_input = input(f"- Your guess ({round + 1}/{self.__MaxGuesses}) is: ")
+
+            # = Punishment =========================================================================
+            # - Incorrect guess length 
+            if len(user_input) != self.__WordsLength:
+                print(f"{Fore.RED}- PUNISHED! your guess must be {self.__WordsLength} letters. SILLY!")
+                print(r"""
+                                    ,\
+                                    \\\,_
+                                    \` ,\
+                                __,.-" =__)
+                            ."        )
+                            ,_/   ,    \/\_
+                            \_|    )_-\ \_-`
+                            `-----` `--`
+                        """ + Style.RESET_ALL)
+                continue
+            # - Alphabet-only input
+            if any(ch not in alphabet for ch in user_input.lower()):
+                print(f"{Fore.RED}- PUNISHED! you can only use letters from the english alphabet (a-z).{Style.RESET_ALL}")
+                print(r"""
+                                    ((`\
+                                    ___ \\ '--._
+                                .'`   `'    o  )
+                                /    \   '. __.'
+                            _|    /_  \ \_\_
+                              {_\______\-'\__\_\
+                        """)
+                continue
+            # =======================================================================================
+
+            feedback = self.bunny_feedback(victoryWord, user_input)
+            print(f"- Bunny says: {feedback}")
+
+            self.__TriedWords.append(user_input.lower())
+
+            # Validate bunny feedback only AFTER the first guess
+            if len(self.__TriedWords) > 1:
+                if not self.input_constrainer(user_input, feedback):
+                    print(f"{Style.BRIGHT}{Fore.RED}Bunny produced invalid feedback — this should never happen.{Style.RESET_ALL}")
+                    self.reset_variables()
+                    return
+
+            self.assign_colors(feedback)
+
+            if feedback == "A" * len(victoryWord):
+                print(f"- ARGH!!! You win this time!...")
+                return
+
+        print(f"- BLEH! You lost! Bunny's word was: {victoryWord}")
     
     def wordy_guess(self):
         answers_input = []
@@ -378,7 +447,7 @@ class game():
             
             #  - EARLY WIN CHECK: all greens
             if answer.lower() == "a" * len(answer):
-                print(f"{Fore.GREEN}{Style.BRIGHT}✔ Wordy wins again!{Style.NORMAL}")
+                print(f"{Fore.GREEN}{Style.BRIGHT}- Wordy wins again!{Style.NORMAL}")
                 print("                   _ |\\_")
                 print("                   \\` ..\\")
                 print("              __,.-\" =__Y=")
@@ -389,38 +458,54 @@ class game():
                 self.reset_variables()
                 self.save_game(best_word)
                 return best_word
+            
+            styled_word = self.answer_styling(answer)
+            answers_input.append(styled_word)
 
-            # - Parse A/B/X feedback
-            for mark in answer:
+    def answer_styling(self, answer: str) -> str:
+        styled = []
 
-                # GREEN
-                if mark.lower() == "a":
-                    answer_input.append(f"{Fore.GREEN}{Style.BRIGHT}{mark.upper()}{Style.RESET_ALL}")
-
-                # YELLOW
-                elif mark.lower() == "b":
-                    answer_input.append(f"{Fore.YELLOW}{Style.BRIGHT}{mark.upper()}{Style.RESET_ALL}")
-
-                # RED
-                else:
-                    answer_input.append(f"{Fore.RED}{Style.BRIGHT}{mark.upper()}{Style.RESET_ALL}")
-
-            answers_input.append("".join(answer_input))
-
-        return self.__TriedWords[-1]
-
-    def bunny_feedback(self, answer:str, wordy_word:str):
-        bunny_feedback = []
-        for i, letter in enumerate(answer):
-            if letter == wordy_word[i]:
-                bunny_feedback.append("A")
-            elif letter in wordy_word:
-                b_amount = letter.count(letter)
-
+        for mark in answer:
+            if mark.lower() == "a":
+                styled.append(f"{Fore.GREEN}{Style.BRIGHT}{mark.upper()}{Style.RESET_ALL}")
+            elif mark.lower() == "b":
+                styled.append(f"{Fore.YELLOW}{Style.BRIGHT}{mark.upper()}{Style.RESET_ALL}")
             else:
-                bunny_feedback.append("X")
-        
-        return "".join(bunny_feedback)
+                styled.append(f"{Fore.RED}{Style.BRIGHT}{mark.upper()}{Style.RESET_ALL}")
+
+        return "".join(styled)
+
+    def bunny_feedback(self, answer:str, guess:str):
+        # - Normalize
+        answer = answer.lower()
+        guess = guess.lower()
+
+        # - Default all to X
+        feedback = ["X"] * len(answer)
+
+        # - Count how many times each letter appears in the answer
+        letter_counts = {}
+        for ch in answer:
+            letter_counts[ch] = letter_counts.get(ch, 0) + 1
+
+        # - FIRST PASS: Assign A (correct position)
+        for i in range(len(answer)):
+            if guess[i] == answer[i]:
+                feedback[i] = "A"
+                letter_counts[guess[i]] -= 1  # Use one occurrence
+
+        # - SECOND PASS: Assign B (wrong position but exists)
+        for i in range(len(answer)):
+            if feedback[i] == "A":
+                continue  # Already processed
+
+            if guess[i] in letter_counts and letter_counts[guess[i]] > 0:
+                feedback[i] = "B"
+                letter_counts[guess[i]] -= 1
+            else:
+                feedback[i] = "X"
+
+        return "".join(feedback)
     
     
 
@@ -435,13 +520,10 @@ class game():
 
 
 
-    @staticmethod
-    def bunny_word():
-        with open("data/wordy-data/wordy-words.txt", "r") as file:
-            words = [line.strip() for line in file]
-
-        random_word = random.choice(words)
-        print(random_word)
+    def bunny_word(self):
+        self.get_possibleWords()
+        random_word = random.choice(self.__PermitedWords)
+        return random_word
 
 
 
@@ -465,7 +547,7 @@ class game():
                 word = input("- Load new custom word: ").strip().lower()
                 if all(letter in alphabet for letter in word) and len(word) == self.__WordsLength:
                     file.writelines(word + "\n")
-                    print(f"{Fore.GREEN}✔ Word '{word}' saved!{Style.RESET_ALL}")
+                    print(f"{Fore.GREEN}- Word '{word}' saved!{Style.RESET_ALL}")
                     break
                 print(f"{Fore.RED}{Style.BRIGHT}(Error){Style.NORMAL} - Enter a valid word ({self.__WordsLength} letters, English alphabet only){Style.RESET_ALL}")
     @staticmethod
