@@ -30,3 +30,5 @@ im using a template to make a good readme, this probabbly will never be needed b
 - a frequency bias? as in, i downloaded the most frequent words of the english dictionary in order and it may help the bot in some situations
 
 ## Known issues
+
+- When bunny punishes you in the last instance of the game it does not show you which word she had
